@@ -5,6 +5,7 @@ Based on the pychorus library by vivjay30
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -47,6 +48,9 @@ app.add_middleware(
 file_manager = FileManager()
 audio_processor = AudioProcessor()
 
+# Optionally mount a static directory in the future (e.g., for assets)
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Pydantic models
 class ChorusExtractionRequest(BaseModel):
     duration: Optional[int] = 30
@@ -81,6 +85,15 @@ async def health_check():
         version="1.0.0",
         uptime="running"
     )
+
+
+@app.get("/index.html")
+async def serve_index_html():
+    """Serve the static homepage HTML file"""
+    index_path = Path(__file__).parent / "index.html"
+    if not index_path.exists():
+        raise HTTPException(status_code=404, detail="index.html not found")
+    return FileResponse(path=str(index_path), media_type="text/html")
 
 @app.post("/extract-chorus", response_model=ChorusExtractionResponse)
 async def extract_chorus(
@@ -221,4 +234,5 @@ if __name__ == "__main__":
         port=8000,
         reload=True
     )
+
 

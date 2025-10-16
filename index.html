@@ -469,7 +469,7 @@
                         </div>
                     </div>
                     <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
-                        💡 服务启动后，API将在 <code>http://localhost:8000</code> 运行，然后就可以使用下面的演示功能了！
+                        💡 已部署环境下，API 基础地址为 <code>https://v1.chorusclip.com/</code>
                     </p>
                     <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745;">
                         <h4 style="color: #28a745; margin-bottom: 0.5rem;">🛠️ 简化启动方式</h4>
@@ -524,8 +524,8 @@
                     <p>智能副歌提取服务</p>
                 </div>
                 <div class="social-links">
-                    <a href="/docs" title="API文档">📚</a>
-                    <a href="/redoc" title="ReDoc文档">📖</a>
+                    <a href="https://v1.chorusclip.com/docs" title="API文档">📚</a>
+                    <a href="https://v1.chorusclip.com/redoc" title="ReDoc文档">📖</a>
                     <a href="https://github.com" title="GitHub">🐙</a>
                 </div>
             </div>
@@ -600,7 +600,7 @@ python main.py
 # 或者
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
                     </pre>
-                    <p>服务启动后，API将在 <code>http://localhost:8000</code> 运行</p>
+                    <p>已部署环境地址：<code>https://v1.chorusclip.com/</code></p>
                 `, 'error');
                 return;
             }
@@ -642,11 +642,11 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
                 if (error.message.includes('Failed to fetch')) {
                     showResult(`
                         <h4>❌ 无法连接到API服务</h4>
-                        <p>请确保Chorus API服务正在运行：</p>
+                        <p>请确保已部署的 Chorus API 服务可访问，或检查本地服务是否已启动：</p>
                         <ol style="text-align: left; margin: 1rem 0;">
                             <li>在项目目录中运行：<code>python main.py</code></li>
                             <li>或者使用：<code>uvicorn main:app --host 0.0.0.0 --port 8000</code></li>
-                            <li>确保服务在 <code>http://localhost:8000</code> 运行</li>
+                            <li>线上服务地址：<code>https://v1.chorusclip.com/</code></li>
                         </ol>
                         <p><strong>错误详情:</strong> ${error.message}</p>
                     `, 'error');
@@ -661,14 +661,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
         // 获取API基础URL
         function getApiBaseUrl() {
-            // 尝试检测API服务是否可用
-            const possibleUrls = [
-                'http://localhost:8000',
-                'http://127.0.0.1:8000',
-                window.location.origin
-            ];
-            
-            return possibleUrls[0]; // 默认使用localhost:8000
+            // 使用已部署的线上地址
+            return 'https://v1.chorusclip.com';
         }
 
         // 检查API服务状态

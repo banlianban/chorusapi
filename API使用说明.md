@@ -51,15 +51,15 @@ Chorus API 是一个基于 FastAPI 构建的强大服务，用于从音频文件
    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-API 将在 `http://localhost:8000` 上运行
+API 将在 `https://v1.chorusclip.com/` 上运行
 
 ## API 端点文档
 
 ### 交互式文档
 
 服务运行后，您可以访问以下地址查看交互式 API 文档：
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
+- **Swagger UI**: `https://v1.chorusclip.com/docs`
+- **ReDoc**: `https://v1.chorusclip.com/redoc`
 
 ### 端点列表
 
@@ -169,7 +169,7 @@ GET /supported-formats
 import requests
 
 # 从音频文件提取副歌
-url = "http://localhost:8000/extract-chorus"
+url = "https://v1.chorusclip.com/extract-chorus"
 files = {"file": open("song.mp3", "rb")}
 data = {"duration": 40, "quality": "high"}
 
@@ -180,7 +180,7 @@ if result["success"]:
     print(f"副歌开始时间: {result['chorus_start_sec']} 秒")
     
     # 下载提取的副歌
-    download_url = f"http://localhost:8000/download/{result['file_id']}"
+    download_url = f"https://v1.chorusclip.com/download/{result['file_id']}"
     chorus_file = requests.get(download_url)
     
     with open("extracted_chorus.wav", "wb") as f:
@@ -191,13 +191,13 @@ if result["success"]:
 
 ```bash
 # 提取副歌
-curl -X POST "http://localhost:8000/extract-chorus" \
+curl -X POST "https://v1.chorusclip.com/extract-chorus" \
   -F "file=@song.mp3" \
   -F "duration=30" \
   -F "quality=high"
 
 # 下载提取的副歌
-curl -X GET "http://localhost:8000/download/{file_id}" \
+curl -X GET "https://v1.chorusclip.com/download/{file_id}" \
   -o "chorus.wav"
 ```
 
@@ -209,7 +209,7 @@ formData.append('file', audioFile);
 formData.append('duration', '30');
 formData.append('quality', 'high');
 
-fetch('http://localhost:8000/extract-chorus', {
+fetch('https://v1.chorusclip.com/extract-chorus', {
   method: 'POST',
   body: formData
 })
@@ -218,7 +218,7 @@ fetch('http://localhost:8000/extract-chorus', {
   if (data.success) {
     console.log(`副歌开始时间: ${data.chorus_start_sec} 秒`);
     // 下载文件
-    window.open(`http://localhost:8000/download/${data.file_id}`);
+    window.open(`https://v1.chorusclip.com/download/${data.file_id}`);
   }
 });
 ```
@@ -308,10 +308,10 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ```bash
 # 测试健康检查端点
-curl http://localhost:8000/health
+curl https://v1.chorusclip.com/health
 
 # 测试副歌提取
-curl -X POST "http://localhost:8000/extract-chorus" \
+curl -X POST "https://v1.chorusclip.com/extract-chorus" \
   -F "file=@test_audio.mp3" \
   -F "duration=30"
 ```
@@ -382,4 +382,5 @@ API 会记录详细的处理日志，包括：
 - 提供完整的 REST API
 - 支持异步处理
 - 包含文件管理和清理功能
+
 

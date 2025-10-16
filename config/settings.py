@@ -90,3 +90,4 @@ class Settings:
         """Get quality settings for specified quality level"""
         return self.QUALITY_SETTINGS.get(quality, self.QUALITY_SETTINGS["high"])
 
+
