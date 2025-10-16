@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chorus API - 智能副歌提取服务</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        main {
+            margin-top: 80px;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 1rem 2rem;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .features {
+            background: white;
+            padding: 4rem 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+            border: 1px solid #e9ecef;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .api-docs {
+            background: #f8f9fa;
+            padding: 4rem 0;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #333;
+        }
+
+        .endpoint {
+            background: white;
+            margin: 1rem 0;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .method {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-right: 1rem;
+        }
+
+        .method.get {
+            background: #28a745;
+            color: white;
+        }
+
+        .method.post {
+            background: #007bff;
+            color: white;
+        }
+
+        .method.delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .demo-section {
+            background: white;
+            padding: 4rem 0;
+        }
+
+        .demo-container {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+        }
+
+        .file-upload {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.05);
+        }
+
+        .file-upload.dragover {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .form-group {
+            margin: 1rem 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .social-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">🎵 Chorus API</div>
+            <ul class="nav-links">
+                <li><a href="#features">功能特性</a></li>
+                <li><a href="#api">API文档</a></li>
+                <li><a href="#demo">在线演示</a></li>
+                <li><a href="#contact">联系我们</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>智能副歌提取服务</h1>
+                <p>基于AI技术的音乐副歌自动检测与提取，支持多种音频格式，简单易用的REST API</p>
+                <a href="#demo" class="cta-button">立即体验</a>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2 class="section-title">核心功能</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎵</div>
+                        <h3>智能副歌提取</h3>
+                        <p>使用先进的AI算法自动检测并提取音频文件中最可能的副歌部分</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🚀</div>
+                        <h3>高性能处理</h3>
+                        <p>基于FastAPI框架，支持异步处理，提供快速响应的API服务</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📁</div>
+                        <h3>多格式支持</h3>
+                        <p>支持MP3、WAV、M4A、FLAC、AAC、OGG等多种音频格式</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>异步处理</h3>
+                        <p>非阻塞文件处理，提供更好的性能和用户体验</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔧</div>
+                        <h3>可配置参数</h3>
+                        <p>支持自定义时长、质量设置和文件处理参数</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>健康监控</h3>
+                        <p>内置健康检查端点，实时监控服务状态</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="api" class="api-docs">
+            <div class="container">
+                <h2 class="section-title">API 文档</h2>
+                
+                <div class="endpoint">
+                    <h3><span class="method get">GET</span> /health</h3>
+                    <p><strong>描述:</strong> 健康检查端点，返回API状态和版本信息</p>
+                    <p><strong>响应示例:</strong></p>
+                    <pre><code>{
+  "status": "healthy",
+  "version": "1.0.0",
+  "uptime": "running"
+}</code></pre>
+                </div>
+
+                <div class="endpoint">
+                    <h3><span class="method post">POST</span> /extract-chorus</h3>
+                    <p><strong>描述:</strong> 从上传的音频文件中提取副歌部分</p>
+                    <p><strong>参数:</strong></p>
+                    <ul>
+                        <li><code>file</code> (必需): 音频文件 (支持 mp3, wav, m4a, flac)</li>
+                        <li><code>duration</code> (可选): 副歌时长，10-120秒，默认30秒</li>
+                        <li><code>quality</code> (可选): 质量设置 - "low", "medium", "high"，默认"high"</li>
+                    </ul>
+                    <p><strong>响应示例:</strong></p>
+                    <pre><code>{
+  "success": true,
+  "chorus_start_sec": 45.2,
+  "output_file_path": "outputs/abc123_chorus.wav",
+  "message": "Chorus extracted successfully",
+  "file_id": "abc123"
+}</code></pre>
+                </div>
+
+                <div class="endpoint">
+                    <h3><span class="method get">GET</span> /download/{file_id}</h3>
+                    <p><strong>描述:</strong> 下载提取的副歌文件</p>
+                    <p><strong>参数:</strong></p>
+                    <ul>
+                        <li><code>file_id</code> (必需): 从extract-chorus端点返回的文件ID</li>
+                    </ul>
+                </div>
+
+                <div class="endpoint">
+                    <h3><span class="method delete">DELETE</span> /cleanup/{file_id}</h3>
+                    <p><strong>描述:</strong> 清理与特定file_id关联的临时文件</p>
+                </div>
+
+                <div class="endpoint">
+                    <h3><span class="method get">GET</span> /supported-formats</h3>
+                    <p><strong>描述:</strong> 获取支持的音频格式和限制信息</p>
+                    <p><strong>响应示例:</strong></p>
+                    <pre><code>{
+  "supported_formats": [".mp3", ".wav", ".m4a", ".flac"],
+  "max_file_size": "50MB",
+  "max_duration": "120 seconds"
+}</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="demo" class="demo-section">
+            <div class="container">
+                <h2 class="section-title">在线演示</h2>
+                
+                <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 10px; padding: 1.5rem; margin-bottom: 2rem;">
+                    <h3 style="color: #1976d2; margin-bottom: 1rem;">🚀 快速开始</h3>
+                    <p style="margin-bottom: 1rem;">要使用在线演示功能，请先启动Chorus API服务：</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                        <div style="background: white; padding: 1rem; border-radius: 5px;">
+                            <h4 style="color: #1976d2; margin-bottom: 0.5rem;">方法1: 直接运行</h4>
+                            <pre style="background: #f5f5f5; padding: 0.5rem; border-radius: 3px; font-size: 0.9rem; margin: 0;">python main.py</pre>
+                        </div>
+                        <div style="background: white; padding: 1rem; border-radius: 5px;">
+                            <h4 style="color: #1976d2; margin-bottom: 0.5rem;">方法2: 使用uvicorn</h4>
+                            <pre style="background: #f5f5f5; padding: 0.5rem; border-radius: 3px; font-size: 0.9rem; margin: 0;">uvicorn main:app --host 0.0.0.0 --port 8000 --reload</pre>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
+                        💡 服务启动后，API将在 <code>http://localhost:8000</code> 运行，然后就可以使用下面的演示功能了！
+                    </p>
+                    <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745;">
+                        <h4 style="color: #28a745; margin-bottom: 0.5rem;">🛠️ 简化启动方式</h4>
+                        <p style="margin-bottom: 0.5rem;">也可以使用启动脚本：</p>
+                        <pre style="background: #e9ecef; padding: 0.5rem; border-radius: 3px; font-size: 0.9rem; margin: 0;">python start_api.py</pre>
+                        <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #666;">启动脚本会自动检查依赖、创建必要目录并启动服务</p>
+                    </div>
+                </div>
+                
+                <div class="demo-container">
+                    <h3>上传音频文件并提取副歌</h3>
+                    <form id="demoForm">
+                        <div class="file-upload" id="fileUpload">
+                            <p>📁 点击选择文件或拖拽文件到此处</p>
+                            <input type="file" id="audioFile" accept="audio/*" style="display: none;">
+                            <p id="fileName" style="margin-top: 1rem; color: #666;"></p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="duration">副歌时长 (秒):</label>
+                            <input type="number" id="duration" min="10" max="120" value="30">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="quality">质量设置:</label>
+                            <select id="quality">
+                                <option value="high">高质量 (44.1kHz, 24-bit)</option>
+                                <option value="medium">中等质量 (44.1kHz, 16-bit)</option>
+                                <option value="low">低质量 (22.05kHz, 16-bit)</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn" id="submitBtn">提取副歌</button>
+                    </form>
+                    
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p>正在处理音频文件，请稍候...</p>
+                    </div>
+                    
+                    <div class="result" id="result"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div>
+                    <h3>Chorus API</h3>
+                    <p>智能副歌提取服务</p>
+                </div>
+                <div class="social-links">
+                    <a href="/docs" title="API文档">📚</a>
+                    <a href="/redoc" title="ReDoc文档">📖</a>
+                    <a href="https://github.com" title="GitHub">🐙</a>
+                </div>
+            </div>
+            <p style="margin-top: 1rem; opacity: 0.7;">&copy; 2024 Chorus API. 基于 pychorus 库构建。</p>
+        </div>
+    </footer>
+
+    <script>
+        // 文件上传处理
+        const fileUpload = document.getElementById('fileUpload');
+        const audioFile = document.getElementById('audioFile');
+        const fileName = document.getElementById('fileName');
+        const demoForm = document.getElementById('demoForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+
+        // 点击上传区域选择文件
+        fileUpload.addEventListener('click', () => {
+            audioFile.click();
+        });
+
+        // 文件选择处理
+        audioFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fileName.textContent = `已选择: ${file.name}`;
+                fileName.style.color = '#28a745';
+            }
+        });
+
+        // 拖拽处理
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                audioFile.files = files;
+                fileName.textContent = `已选择: ${files[0].name}`;
+                fileName.style.color = '#28a745';
+            }
+        });
+
+        // 表单提交处理
+        demoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const file = audioFile.files[0];
+            if (!file) {
+                showResult('请选择一个音频文件', 'error');
+                return;
+            }
+
+            // 检查API服务是否可用
+            const apiBaseUrl = getApiBaseUrl();
+            if (!apiBaseUrl) {
+                showResult(`
+                    <h4>⚠️ API服务未启动</h4>
+                    <p>请先启动Chorus API服务：</p>
+                    <pre style="background: #f8f9fa; padding: 1rem; border-radius: 5px; margin: 1rem 0;">
+python main.py
+# 或者
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+                    </pre>
+                    <p>服务启动后，API将在 <code>http://localhost:8000</code> 运行</p>
+                `, 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('duration', document.getElementById('duration').value);
+            formData.append('quality', document.getElementById('quality').value);
+
+            // 显示加载状态
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch(`${apiBaseUrl}/extract-chorus`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const downloadUrl = `${apiBaseUrl}/download/${data.file_id}`;
+                    showResult(`
+                        <h4>✅ 副歌提取成功！</h4>
+                        <p><strong>副歌开始时间:</strong> ${data.chorus_start_sec} 秒</p>
+                        <p><strong>文件ID:</strong> ${data.file_id}</p>
+                        <a href="${downloadUrl}" class="btn" style="margin-top: 1rem; display: inline-block;">下载副歌文件</a>
+                    `, 'success');
+                } else {
+                    showResult(`❌ 提取失败: ${data.detail || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                if (error.message.includes('Failed to fetch')) {
+                    showResult(`
+                        <h4>❌ 无法连接到API服务</h4>
+                        <p>请确保Chorus API服务正在运行：</p>
+                        <ol style="text-align: left; margin: 1rem 0;">
+                            <li>在项目目录中运行：<code>python main.py</code></li>
+                            <li>或者使用：<code>uvicorn main:app --host 0.0.0.0 --port 8000</code></li>
+                            <li>确保服务在 <code>http://localhost:8000</code> 运行</li>
+                        </ol>
+                        <p><strong>错误详情:</strong> ${error.message}</p>
+                    `, 'error');
+                } else {
+                    showResult(`❌ 请求失败: ${error.message}`, 'error');
+                }
+            } finally {
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        // 获取API基础URL
+        function getApiBaseUrl() {
+            // 尝试检测API服务是否可用
+            const possibleUrls = [
+                'http://localhost:8000',
+                'http://127.0.0.1:8000',
+                window.location.origin
+            ];
+            
+            return possibleUrls[0]; // 默认使用localhost:8000
+        }
+
+        // 检查API服务状态
+        async function checkApiStatus() {
+            const apiBaseUrl = getApiBaseUrl();
+            try {
+                const response = await fetch(`${apiBaseUrl}/health`);
+                if (response.ok) {
+                    console.log('API服务运行正常');
+                    return true;
+                }
+            } catch (error) {
+                console.log('API服务未启动或无法访问');
+            }
+            return false;
+        }
+
+        // 页面加载时检查API状态
+        window.addEventListener('load', async () => {
+            const isApiRunning = await checkApiStatus();
+            if (!isApiRunning) {
+                // 在演示区域显示提示
+                const demoContainer = document.querySelector('.demo-container');
+                const warningDiv = document.createElement('div');
+                warningDiv.style.cssText = `
+                    background: #fff3cd;
+                    border: 1px solid #ffeaa7;
+                    color: #856404;
+                    padding: 1rem;
+                    border-radius: 5px;
+                    margin-bottom: 1rem;
+                `;
+                warningDiv.innerHTML = `
+                    <h4>⚠️ API服务未启动</h4>
+                    <p>要使用在线演示功能，请先启动Chorus API服务：</p>
+                    <pre style="background: #f8f9fa; padding: 0.5rem; border-radius: 3px; font-size: 0.9rem;">python main.py</pre>
+                `;
+                demoContainer.insertBefore(warningDiv, demoContainer.firstChild);
+            }
+        });
+
+        function showResult(message, type) {
+            result.innerHTML = message;
+            result.className = `result ${type}`;
+            result.style.display = 'block';
+        }
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
