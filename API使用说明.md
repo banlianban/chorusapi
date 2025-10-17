@@ -93,6 +93,9 @@ POST /extract-chorus
 - `file` (multipart/form-data, 必需): 要处理的音频文件
 - `duration` (form data, 可选): 要提取的副歌时长（10-120秒，默认30秒）
 - `quality` (form data, 可选): 质量设置 - "low"、"medium"、"high"（默认"high"）
+- `long_audio_mode` (form data, 可选): 允许长音频处理（默认false，超过15分钟会返回413）
+- `downmix` (form data, 可选): 允许多声道下混为单声道（默认true）
+- `resample` (form data, 可选): 允许采样率重采样（默认true）
 
 **响应示例**:
 ```json
@@ -106,9 +109,102 @@ POST /extract-chorus
 ```
 
 **错误响应**:
+
+API 现在返回结构化的错误信息，包含详细的错误类型和音频指标：
+
+**基础错误格式**:
 ```json
 {
-  "detail": "Invalid file type. Supported formats: mp3, wav, m4a, flac"
+  "detail": {
+    "type": "错误类型",
+    "message": "人类可读的错误描述",
+    "metrics": {
+      "duration_sec": 音频时长,
+      "samplerate": 采样率,
+      "channels": 声道数,
+      "rms_dbfs": RMS响度(dBFS),
+      "format": 文件格式,
+      "codec": 编码格式
+    }
+  }
+}
+```
+
+**具体错误类型**:
+
+1. **Audio.TooShort** (HTTP 422):
+```json
+{
+  "detail": {
+    "type": "Audio.TooShort",
+    "message": "Audio duration is shorter than required minimum",
+    "min_seconds": 30.0,
+    "actual": 17.2,
+    "metrics": { "duration_sec": 17.2, "samplerate": 44100, ... }
+  }
+}
+```
+
+2. **Audio.TooLong** (HTTP 413):
+```json
+{
+  "detail": {
+    "type": "Audio.TooLong", 
+    "message": "Audio duration exceeds maximum allowed; enable long_audio_mode or segment",
+    "max_seconds": 900.0,
+    "actual": 1200.5,
+    "metrics": { "duration_sec": 1200.5, ... }
+  }
+}
+```
+
+3. **Audio.SilentOrLowRMS** (HTTP 422):
+```json
+{
+  "detail": {
+    "type": "Audio.SilentOrLowRMS",
+    "message": "Audio loudness below threshold", 
+    "threshold_dbfs": -45.0,
+    "actual_dbfs": -52.3,
+    "metrics": { "rms_dbfs": -52.3, ... }
+  }
+}
+```
+
+4. **Audio.MonoRequired** (HTTP 422):
+```json
+{
+  "detail": {
+    "type": "Audio.MonoRequired",
+    "message": "Mono required but multi-channel provided and downmix disabled",
+    "metrics": { "channels": 2, ... },
+    "hints": { "allow_downmix": true }
+  }
+}
+```
+
+5. **Audio.SampleRateUnsupported** (HTTP 422):
+```json
+{
+  "detail": {
+    "type": "Audio.SampleRateUnsupported", 
+    "message": "Sample rate out of supported range and resampling disabled",
+    "supported_range": [16000, 192000],
+    "actual": 8000,
+    "metrics": { "samplerate": 8000, ... },
+    "hints": { "allow_resample": true, "suggested": 44100 }
+  }
+}
+```
+
+6. **Extraction.Failed** (HTTP 422):
+```json
+{
+  "detail": {
+    "type": "Extraction.Failed",
+    "message": "No chorus found in the audio file",
+    "metrics": { "duration_sec": 45.2, ... }
+  }
 }
 ```
 
@@ -171,30 +267,65 @@ import requests
 # 从音频文件提取副歌
 url = "https://v1.chorusclip.com/extract-chorus"
 files = {"file": open("song.mp3", "rb")}
-data = {"duration": 40, "quality": "high"}
+data = {
+    "duration": 40, 
+    "quality": "high",
+    "long_audio_mode": "true",  # 允许长音频
+    "downmix": "true",          # 允许下混单声道
+    "resample": "true"           # 允许重采样
+}
 
 response = requests.post(url, files=files, data=data)
-result = response.json()
 
-if result["success"]:
-    print(f"副歌开始时间: {result['chorus_start_sec']} 秒")
-    
-    # 下载提取的副歌
-    download_url = f"https://v1.chorusclip.com/download/{result['file_id']}"
-    chorus_file = requests.get(download_url)
-    
-    with open("extracted_chorus.wav", "wb") as f:
-        f.write(chorus_file.content)
+if response.status_code == 200:
+    result = response.json()
+    if result["success"]:
+        print(f"副歌开始时间: {result['chorus_start_sec']} 秒")
+        
+        # 下载提取的副歌
+        download_url = f"https://v1.chorusclip.com/download/{result['file_id']}"
+        chorus_file = requests.get(download_url)
+        
+        with open("extracted_chorus.wav", "wb") as f:
+            f.write(chorus_file.content)
+    else:
+        print(f"提取失败: {result.get('detail', '未知错误')}")
+else:
+    # 处理结构化错误
+    try:
+        error_detail = response.json()["detail"]
+        error_type = error_detail.get("type", "Unknown")
+        error_message = error_detail.get("message", "未知错误")
+        metrics = error_detail.get("metrics", {})
+        
+        print(f"错误类型: {error_type}")
+        print(f"错误信息: {error_message}")
+        if metrics:
+            print(f"音频指标: 时长={metrics.get('duration_sec')}s, "
+                  f"采样率={metrics.get('samplerate')}Hz, "
+                  f"声道={metrics.get('channels')}, "
+                  f"响度={metrics.get('rms_dbfs')}dBFS")
+    except:
+        print(f"请求失败: HTTP {response.status_code}")
 ```
 
 ### cURL 示例
 
 ```bash
-# 提取副歌
+# 提取副歌（基础参数）
 curl -X POST "https://v1.chorusclip.com/extract-chorus" \
   -F "file=@song.mp3" \
   -F "duration=30" \
   -F "quality=high"
+
+# 提取副歌（完整参数，允许长音频和重采样）
+curl -X POST "https://v1.chorusclip.com/extract-chorus" \
+  -F "file=@long_song.mp3" \
+  -F "duration=45" \
+  -F "quality=high" \
+  -F "long_audio_mode=true" \
+  -F "downmix=true" \
+  -F "resample=true"
 
 # 下载提取的副歌
 curl -X GET "https://v1.chorusclip.com/download/{file_id}" \
@@ -208,18 +339,41 @@ const formData = new FormData();
 formData.append('file', audioFile);
 formData.append('duration', '30');
 formData.append('quality', 'high');
+formData.append('long_audio_mode', 'true');  // 允许长音频
+formData.append('downmix', 'true');          // 允许下混单声道
+formData.append('resample', 'true');         // 允许重采样
 
 fetch('https://v1.chorusclip.com/extract-chorus', {
   method: 'POST',
   body: formData
 })
-.then(response => response.json())
+.then(response => {
+  if (response.ok) {
+    return response.json();
+  } else {
+    // 处理结构化错误
+    return response.json().then(errorData => {
+      const detail = errorData.detail;
+      console.error(`错误类型: ${detail.type}`);
+      console.error(`错误信息: ${detail.message}`);
+      if (detail.metrics) {
+        console.error(`音频指标:`, detail.metrics);
+      }
+      throw new Error(`${detail.type}: ${detail.message}`);
+    });
+  }
+})
 .then(data => {
   if (data.success) {
     console.log(`副歌开始时间: ${data.chorus_start_sec} 秒`);
     // 下载文件
     window.open(`https://v1.chorusclip.com/download/${data.file_id}`);
+  } else {
+    console.error(`提取失败: ${data.detail || '未知错误'}`);
   }
+})
+.catch(error => {
+  console.error('请求失败:', error.message);
 });
 ```
 
@@ -255,17 +409,44 @@ API 支持通过环境变量进行配置：
 
 ## 错误处理
 
-API 返回适当的 HTTP 状态码和错误信息：
+API 现在返回结构化的错误信息，包含详细的错误类型和音频指标：
+
+### HTTP 状态码映射
 
 - `400 Bad Request`: 无效文件格式、时长超出范围或缺少参数
+- `413 Payload Too Large`: 音频文件过长（超过15分钟且未启用长音频模式）
+- `422 Unprocessable Entity`: 音频规范性检查失败（太短、静音、采样率不支持等）
 - `404 Not Found`: 下载时文件未找到
-- `500 Internal Server Error`: 处理错误或服务器问题
+- `500 Internal Server Error`: 服务器内部错误
 
-**常见错误信息**:
-- `"Invalid file type. Supported formats: mp3, wav, m4a, flac"`
-- `"Duration must be between 10 and 120 seconds"`
-- `"File not found. It may have expired or been deleted."`
-- `"Failed to extract chorus from audio file"`
+### 错误类型详解
+
+| 错误类型 | HTTP状态 | 触发条件 | 返回字段 |
+|---------|---------|---------|---------|
+| `Audio.TooShort` | 422 | 音频时长 < 30秒 | `min_seconds`, `actual`, `metrics` |
+| `Audio.TooLong` | 413 | 音频时长 > 15分钟且未启用长音频模式 | `max_seconds`, `actual`, `metrics` |
+| `Audio.SilentOrLowRMS` | 422 | RMS响度 < -45dBFS | `threshold_dbfs`, `actual_dbfs`, `metrics` |
+| `Audio.MonoRequired` | 422 | 要求单声道但输入多声道且禁用下混 | `metrics.channels`, `hints.allow_downmix` |
+| `Audio.SampleRateUnsupported` | 422 | 采样率不在16k-192k范围内且禁用重采样 | `supported_range`, `actual`, `hints` |
+| `Extraction.Failed` | 422 | pychorus无法找到副歌 | `message`, `metrics` |
+
+### 音频指标说明
+
+所有错误响应都包含 `metrics` 对象，包含以下音频分析结果：
+
+- `duration_sec`: 音频总时长（秒）
+- `samplerate`: 采样率（Hz）
+- `channels`: 声道数
+- `rms_dbfs`: RMS响度（dBFS，负值）
+- `format`: 文件格式（如 "WAV", "MP3"）
+- `codec`: 编码格式（如 "PCM_16", "MP3"）
+
+### 错误处理最佳实践
+
+1. **检查错误类型**: 根据 `detail.type` 字段判断具体错误原因
+2. **查看音频指标**: 使用 `metrics` 字段了解音频文件的具体参数
+3. **遵循提示**: 根据 `hints` 字段调整请求参数（如启用 `long_audio_mode`、`downmix`、`resample`）
+4. **重试策略**: 对于 `Audio.SampleRateUnsupported` 等错误，可以启用相应参数后重试
 
 ## 文件管理
 
@@ -375,6 +556,20 @@ API 会记录详细的处理日志，包括：
 4. 确认音频文件格式支持且未超过大小限制
 
 ## 更新日志
+
+### v1.1.0
+- **新增音频规范性预检**: 在进入 pychorus 处理前进行音频质量检查
+- **结构化错误响应**: 返回详细的错误类型、音频指标和处理建议
+- **新增请求参数**: 支持 `long_audio_mode`、`downmix`、`resample` 参数
+- **错误类型细化**: 
+  - `Audio.TooShort` (422): 音频时长不足
+  - `Audio.TooLong` (413): 音频过长且未启用长音频模式
+  - `Audio.SilentOrLowRMS` (422): 音频响度过低
+  - `Audio.MonoRequired` (422): 单声道要求冲突
+  - `Audio.SampleRateUnsupported` (422): 采样率不支持
+  - `Extraction.Failed` (422): 副歌提取失败
+- **音频指标返回**: 包含 `duration_sec`、`samplerate`、`channels`、`rms_dbfs`、`format`、`codec`
+- **前端错误处理优化**: 支持显示结构化错误信息和音频指标
 
 ### v1.0.0
 - 初始版本发布

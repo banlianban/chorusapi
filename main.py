@@ -99,7 +99,10 @@ async def serve_index_html():
 async def extract_chorus(
     file: UploadFile = File(..., description="Audio file to process"),
     duration: int = Form(30, description="Duration of chorus to extract in seconds"),
-    quality: str = Form("high", description="Quality setting: low, medium, high")
+    quality: str = Form("high", description="Quality setting: low, medium, high"),
+    long_audio_mode: bool = Form(False, description="Allow very long audio without 413"),
+    downmix: bool = Form(True, description="Allow downmix to mono if required"),
+    resample: bool = Form(True, description="Allow resample if sample rate unsupported")
 ):
     """
     Extract chorus section from uploaded audio file
@@ -133,6 +136,37 @@ async def extract_chorus(
         output_filename = f"{file_id}_chorus.wav"
         output_path = file_manager.get_output_path(output_filename)
         
+        # Optional: preflight validation before heavy processing
+        ok, metrics, preflight_err = await audio_processor.preflight_validate(
+            input_path,
+            min_seconds=30,
+            max_seconds=15*60,
+            long_audio_mode=long_audio_mode,
+            mono_required=False,           # set True if your pipeline strictly requires mono
+            allow_downmix=downmix,
+            allow_resample=resample,
+            min_sample_rate=16_000,
+            max_sample_rate=192_000,
+            silence_rms_dbfs_threshold=-45.0,
+        )
+
+        if not ok and preflight_err is not None:
+            err_type = preflight_err.get("type", "")
+            # map structured errors to status codes
+            if err_type == "Audio.TooShort":
+                status_code = 422
+            elif err_type == "Audio.TooLong":
+                status_code = 413
+            elif err_type == "Audio.SilentOrLowRMS":
+                status_code = 422
+            elif err_type == "Audio.MonoRequired":
+                status_code = 422
+            elif err_type == "Audio.SampleRateUnsupported":
+                status_code = 422
+            else:
+                status_code = 422
+            raise HTTPException(status_code=status_code, detail=preflight_err)
+
         # Process audio
         logger.info(f"Processing file {file.filename} with duration {duration}s")
         chorus_start_sec = await audio_processor.extract_chorus(
@@ -143,10 +177,30 @@ async def extract_chorus(
         )
         
         if chorus_start_sec is None:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to extract chorus from audio file"
-            )
+            # Map known reasons to suitable HTTP status codes
+            reason = getattr(audio_processor, "last_error_reason", None) or "Failed to extract chorus from audio file"
+            reason_lower = reason.lower()
+            if "unsupported file format" in reason_lower or "invalid file type" in reason_lower:
+                status_code = 400
+            elif "file too large" in reason_lower:
+                status_code = 413  # Payload Too Large
+            elif "does not exist" in reason_lower:
+                status_code = 400
+            elif "invalid duration" in reason_lower:
+                status_code = 400
+            elif "no chorus found" in reason_lower:
+                status_code = 422  # Unprocessable Entity
+            else:
+                # Default to client-unprocessable rather than server error to surface reason
+                status_code = 422
+
+            # Include any preflight metrics we computed earlier for transparency
+            detail = {
+                "type": "Extraction.Failed",
+                "message": reason,
+                "metrics": metrics if 'metrics' in locals() and isinstance(metrics, dict) else None,
+            }
+            raise HTTPException(status_code=status_code, detail=detail)
         
         logger.info(f"Chorus extracted successfully. Start time: {chorus_start_sec}s")
         

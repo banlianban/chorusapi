@@ -501,6 +501,21 @@
                                 <option value="low">低质量 (22.05kHz, 16-bit)</option>
                             </select>
                         </div>
+
+                        <div class="form-group" style="display:flex;gap:1rem;align-items:center;">
+                            <label style="margin:0;">
+                                <input type="checkbox" id="longAudioMode">
+                                允许长音频 (避免 >15 分钟触发 413)
+                            </label>
+                            <label style="margin:0;">
+                                <input type="checkbox" id="downmix" checked>
+                                允许下混单声道
+                            </label>
+                            <label style="margin:0;">
+                                <input type="checkbox" id="resample" checked>
+                                允许重采样
+                            </label>
+                        </div>
                         
                         <button type="submit" class="btn" id="submitBtn">提取副歌</button>
                     </form>
@@ -609,6 +624,9 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
             formData.append('file', file);
             formData.append('duration', document.getElementById('duration').value);
             formData.append('quality', document.getElementById('quality').value);
+            formData.append('long_audio_mode', document.getElementById('longAudioMode').checked ? 'true' : 'false');
+            formData.append('downmix', document.getElementById('downmix').checked ? 'true' : 'false');
+            formData.append('resample', document.getElementById('resample').checked ? 'true' : 'false');
 
             // 显示加载状态
             submitBtn.disabled = true;
@@ -622,7 +640,34 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    // 尝试解析服务端返回的详细错误信息
+                    let statusMsg = `HTTP ${response.status}`;
+                    try {
+                        const errJson = await response.json();
+                        const detail = errJson && errJson.detail !== undefined ? errJson.detail : errJson;
+                        if (typeof detail === 'string') {
+                            showResult(`❌ 提取失败 (${statusMsg}): ${detail}`, 'error');
+                        } else if (detail && typeof detail === 'object') {
+                            const title = detail.message || detail.type || '服务器返回了错误详情';
+                            const pretty = `<pre style="text-align:left;background:#fff;padding:12px;border-radius:6px;border:1px solid #eee;max-height:300px;overflow:auto;">${
+                                // 仅展示 detail 对象，避免重复外层结构
+                                typeof errJson.detail === 'object' ?
+                                    JSON.stringify(errJson.detail, null, 2) : JSON.stringify(detail, null, 2)
+                            }</pre>`;
+                            showResult(`❌ 提取失败 (${statusMsg}): ${title}${pretty}`, 'error');
+                        } else {
+                            showResult(`❌ 提取失败 (${statusMsg})`, 'error');
+                        }
+                    } catch (_) {
+                        // 非JSON响应，回退到纯文本
+                        try {
+                            const text = await response.text();
+                            showResult(`❌ 提取失败 (${statusMsg}): ${text || response.statusText}`, 'error');
+                        } catch (_) {
+                            showResult(`❌ 提取失败 (${statusMsg})`, 'error');
+                        }
+                    }
+                    return;
                 }
 
                 const data = await response.json();
@@ -636,7 +681,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
                         <a href="${downloadUrl}" class="btn" style="margin-top: 1rem; display: inline-block;">下载副歌文件</a>
                     `, 'success');
                 } else {
-                    showResult(`❌ 提取失败: ${data.detail || '未知错误'}`, 'error');
+                    showResult(`❌ 提取失败: ${data.detail || data.message || '未知错误'}`,'error');
                 }
             } catch (error) {
                 if (error.message.includes('Failed to fetch')) {
@@ -661,7 +706,11 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
         // 获取API基础URL
         function getApiBaseUrl() {
-            // 使用已部署的线上地址
+            // 优先使用同源后端（当通过 http/https 访问时）
+            if (window.location && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+                return window.location.origin;
+            }
+            // 本地 file:// 打开则回退到已部署地址
             return 'https://v1.chorusclip.com';
         }
 
