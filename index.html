@@ -386,6 +386,11 @@
                         <h3>健康监控</h3>
                         <p>内置健康检查端点，实时监控服务状态</p>
                     </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚖️</div>
+                        <h3>智能限制</h3>
+                        <p>支持50MB文件大小，15分钟音频时长，10-120秒副歌提取，确保最佳性能</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -443,9 +448,16 @@
                     <p><strong>描述:</strong> 获取支持的音频格式和限制信息</p>
                     <p><strong>响应示例:</strong></p>
                     <pre><code>{
-  "supported_formats": [".mp3", ".wav", ".m4a", ".flac"],
+  "supported_formats": [".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg"],
   "max_file_size": "50MB",
-  "max_duration": "120 seconds"
+  "max_duration": "120 seconds",
+  "min_duration": "10 seconds",
+  "max_audio_length": "15 minutes",
+  "quality_settings": {
+    "low": "22.05kHz, 16-bit",
+    "medium": "44.1kHz, 16-bit", 
+    "high": "44.1kHz, 24-bit"
+  }
 }</code></pre>
                 </div>
             </div>
@@ -481,6 +493,41 @@
                 
                 <div class="demo-container">
                     <h3>上传音频文件并提取副歌</h3>
+                    
+                    <!-- 文件限制说明 -->
+                    <div style="background: #e8f4fd; border: 1px solid #2196f3; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <h4 style="color: #1976d2; margin-bottom: 1rem; display: flex; align-items: center;">
+                            📋 文件上传限制要求
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                            <div style="background: white; padding: 1rem; border-radius: 6px; border-left: 4px solid #4caf50;">
+                                <h5 style="color: #2e7d32; margin-bottom: 0.5rem;">📁 文件大小限制</h5>
+                                <p style="margin: 0; font-weight: 500; color: #1b5e20;">最大 50MB</p>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #666;">超过限制将无法上传</p>
+                            </div>
+                            <div style="background: white; padding: 1rem; border-radius: 6px; border-left: 4px solid #ff9800;">
+                                <h5 style="color: #f57c00; margin-bottom: 0.5rem;">⏱️ 音频时长限制</h5>
+                                <p style="margin: 0; font-weight: 500; color: #e65100;">总时长 ≤ 15分钟</p>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #666;">长音频需启用"长音频模式"</p>
+                            </div>
+                            <div style="background: white; padding: 1rem; border-radius: 6px; border-left: 4px solid #9c27b0;">
+                                <h5 style="color: #7b1fa2; margin-bottom: 0.5rem;">🎵 副歌时长限制</h5>
+                                <p style="margin: 0; font-weight: 500; color: #4a148c;">10-120秒</p>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #666;">默认30秒，可自定义</p>
+                            </div>
+                            <div style="background: white; padding: 1rem; border-radius: 6px; border-left: 4px solid #f44336;">
+                                <h5 style="color: #d32f2f; margin-bottom: 0.5rem;">🎧 支持格式</h5>
+                                <p style="margin: 0; font-weight: 500; color: #b71c1c;">MP3, WAV, M4A, FLAC, AAC, OGG</p>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #666;">其他格式将无法处理</p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: #fff3e0; border-radius: 4px; border-left: 3px solid #ff9800;">
+                            <p style="margin: 0; font-size: 0.9rem; color: #e65100;">
+                                <strong>💡 提示：</strong> 如果您的音频文件超过15分钟，请勾选下方的"允许长音频"选项，否则会收到413错误。
+                            </p>
+                        </div>
+                    </div>
+                    
                     <form id="demoForm">
                         <div class="file-upload" id="fileUpload">
                             <p>📁 点击选择文件或拖拽文件到此处</p>
